@@ -15,7 +15,7 @@
 
 您可以通过我的 github 来进行安装。
 ```
-pip install git+https://github.com/JeseKi/extensional_agent.git
+pip install git+https://github.com/JeseKi/Extensional-Agent.git
 ```
 
 clone 到本地后，在源码根目录下进行安装：
