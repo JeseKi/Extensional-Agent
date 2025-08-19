@@ -11,11 +11,11 @@ import tempfile
 import shutil
 from typing import Dict, Any
 
-from ..agent_sdk import ExecutionContext, set_execution_context, clear_execution_context
+from extensional_agent.agent_sdk import ExecutionContext, set_execution_context, clear_execution_context
 from .virtual_consumer import VirtualConsumer
 from .persistent_consumer import PersistentConsumer
-from ..registry import AgentRegistry
-from ..schemas import AgentEvent
+from extensional_agent.registry import AgentRegistry
+from extensional_agent.schemas import AgentEvent
 
 
 class AsyncExampleAgentRunner:
@@ -43,8 +43,8 @@ class AsyncExampleAgentRunner:
         await set_execution_context(ctx)
         try:
             # 模拟 Agent 执行过程中的事件（emit_event 会异步处理）
-            from ..agent_sdk import emit_event
-            from ..schemas import ExecutionRecord, Role
+            from extensional_agent.agent_sdk import emit_event
+            from extensional_agent.schemas import ExecutionRecord, Role
             from uuid import uuid4
 
             # 创建执行记录并发送事件
@@ -54,7 +54,7 @@ class AsyncExampleAgentRunner:
                 index=0,
                 role=Role.ASSISTANT,
                 reasoning_content=f"开始执行 {agent_name} Agent",
-                content=f"正在对 {agent_input.domain} 进行渗透测试",
+                content=f"正在查询 {agent_input.city} 的天气信息",
                 is_stop=False,
             )
             await emit_event(execution_record=record1)
@@ -66,8 +66,8 @@ class AsyncExampleAgentRunner:
                 id=stream_1_uuid,
                 index=1,
                 role=Role.TOOL,
-                reasoning_content="调用 nmap 工具进行端口扫描",
-                content={"tool": "nmap", "args": {"target": agent_input.domain}},
+                reasoning_content="调用天气 API 获取基础天气数据",
+                content={"tool": "weather_api", "args": {"city": agent_input.city}},
                 is_stop=True,
             )
             await emit_event(execution_record=record2)
@@ -79,8 +79,8 @@ class AsyncExampleAgentRunner:
                 id=stream_2_uuid,
                 index=0,
                 role=Role.TOOL,
-                reasoning_content="端口扫描完成",
-                content={"status": "success", "open_ports": [80, 443, 22]},
+                reasoning_content="获取空气质量数据",
+                content={"status": "success", "aqi": 45, "pm25": 12},
                 is_stop=True,
             )
             await emit_event(execution_record=record3)
@@ -92,8 +92,8 @@ class AsyncExampleAgentRunner:
                 id=stream_3_uuid,
                 index=0,
                 role=Role.ASSISTANT,
-                reasoning_content="发现潜在的 SQL 注入漏洞",
-                content={"vulnerability": "SQL Injection", "confidence": 0.85},
+                reasoning_content="分析天气趋势",
+                content={"forecast": "rainy", "confidence": 0.85},
                 is_stop=False,
             )
             await emit_event(execution_record=record4)
@@ -104,10 +104,10 @@ class AsyncExampleAgentRunner:
                 id=stream_3_uuid,
                 index=1,
                 role=Role.ASSISTANT,
-                reasoning_content="成功验证 SQL 注入漏洞",
+                reasoning_content="生成天气建议",
                 content={
-                    "vulnerability": "SQL Injection",
-                    "evidence": "Database error revealed",
+                    "advice": "建议携带雨具",
+                    "temperature": "22°C",
                 },
                 is_stop=True,
             )
@@ -117,7 +117,7 @@ class AsyncExampleAgentRunner:
             await asyncio.sleep(0.2)
 
             # 模拟返回结果
-            return {"run_id": run_id, "vulnerabilities_found": 1, "status": "completed"}
+            return {"run_id": run_id, "weather_status": "completed", "advice": "建议携带雨具"}
 
         finally:
             await clear_execution_context()
@@ -144,8 +144,8 @@ async def demonstrate_virtual_consumer():
                 content_display = f"调用工具: {content['tool']}"
             elif "status" in content:
                 content_display = f"状态: {content['status']}"
-            elif "vulnerability" in content:
-                content_display = f"发现漏洞: {content['vulnerability']}"
+            elif "advice" in content:
+                content_display = f"天气建议: {content['advice']}"
             else:
                 content_display = (
                     str(content)[:50] + "..."
@@ -161,23 +161,23 @@ async def demonstrate_virtual_consumer():
             f"  📡 实时事件: [{event.seq}] {role} - {reasoning[:30]}... | {content_display}"
         )
 
-    token = await vc.subscribe("example-sqli-001", event_listener)
+    token = await vc.subscribe("example-weather-001", event_listener)
 
     # 创建 Runner 并异步运行
     registry = AgentRegistry()  # 空注册表，仅用于演示
     runner = AsyncExampleAgentRunner(registry, vc)
 
-    agent_input = {"domain": "vulnerable-site.com", "apis": None}
-    result = await runner.run("sqli", agent_input)
+    agent_input = {"city": "北京", "apis": None}
+    result = await runner.run("weather", agent_input)
 
     print(f"  ✅ 执行完成: {result}")
 
     # 异步查看历史事件
-    events = await vc.get_events("example-sqli-001")
+    events = await vc.get_events("example-weather-001")
     print(f"  📚 历史事件总数: {len(events)}")
 
     # 异步取消订阅
-    await vc.unsubscribe("example-sqli-001", token)
+    await vc.unsubscribe("example-weather-001", token)
     print()
 
 
@@ -209,14 +209,14 @@ async def demonstrate_persistent_consumer():
             )
             print(f"  📡 实时事件: [{event.seq}] {role} - {reasoning}")
 
-        token = await pc.subscribe("example-sqli-001", event_listener)
+        token = await pc.subscribe("example-weather-001", event_listener)
 
         # 创建 Runner 并异步运行
         registry = AgentRegistry()
         runner = AsyncExampleAgentRunner(registry, pc)
 
-        agent_input = {"domain": "production-site.com", "apis": None}
-        result = await runner.run("sqli", agent_input)
+        agent_input = {"city": "上海", "apis": None}
+        result = await runner.run("weather", agent_input)
 
         print(f"  ✅ 执行完成: {result}")
 
@@ -229,8 +229,8 @@ async def demonstrate_persistent_consumer():
         print(f"     - 活跃订阅者: {stats['subscribers']}")
 
         # 异步取消订阅并清理
-        await pc.unsubscribe("example-sqli-001", token)
-        await pc.cleanup("example-sqli-001")
+        await pc.unsubscribe("example-weather-001", token)
+        await pc.cleanup("example-weather-001")
 
     finally:
         # 清理临时目录
@@ -241,12 +241,12 @@ async def demonstrate_persistent_consumer():
 
 async def demonstrate_custom_consumer():
     """演示如何创建自定义异步消息消费者"""
-    print("=== 演示自定义异步 MessageConsumer（日志记录实现）===")
+    print("=== 演示自定义异步 MessageConsumer（天气数据处理实现）===")
 
-    from ..message_consumer import MessageConsumer, AsyncCallback
+    from extensional_agent.message_consumer import MessageConsumer, AsyncCallback
 
-    class AsyncLoggingConsumer(MessageConsumer):
-        """仅记录日志的异步消息消费者（用于演示继承）"""
+    class AsyncWeatherDataConsumer(MessageConsumer):
+        """专门处理天气数据的异步消息消费者（用于演示继承）"""
 
         def __init__(self):
             self._subscribers = {}
@@ -257,7 +257,7 @@ async def demonstrate_custom_consumer():
             run_id = event.run_id
             execution_record = event.execution_record
             role = execution_record.role
-            print(f"  📝 异步日志记录: {run_id} - {role}({event.seq})")
+            print(f"  🌤️ 异步天气数据处理: {run_id} - {role}({event.seq})")
 
             # 保存到内存（简化实现）
             if run_id not in self._events:
@@ -285,28 +285,30 @@ async def demonstrate_custom_consumer():
             events = self._events.get(run_id, [])
             return [e for e in events if e.get("seq", 0) > after_seq]
 
-        async def get_log_summary(self, run_id):
-            """自定义异步方法：获取日志摘要"""
+        async def get_weather_summary(self, run_id):
+            """自定义异步方法：获取天气数据摘要"""
             events = self._events.get(run_id, [])
-            event_types = {}
+            weather_data = {}
             for event in events:
-                event_type = event.get("type", "unknown")
-                event_types[event_type] = event_types.get(event_type, 0) + 1
-            return event_types
+                content = event.get("content", {})
+                if isinstance(content, dict):
+                    # 合并天气数据
+                    weather_data.update(content)
+            return weather_data
 
     # 使用自定义异步消费者
-    lc = AsyncLoggingConsumer()
+    wc = AsyncWeatherDataConsumer()
     registry = AgentRegistry()
-    runner = AsyncExampleAgentRunner(registry, lc)
+    runner = AsyncExampleAgentRunner(registry, wc)
 
-    agent_input = {"domain": "custom-site.com", "apis": None}
-    result = await runner.run("sqli", agent_input)
+    agent_input = {"city": "深圳", "apis": None}
+    result = await runner.run("weather", agent_input)
 
     print(f"  ✅ 执行完成: {result}")
 
     # 使用自定义异步方法
-    summary = await lc.get_log_summary("example-sqli-001")
-    print(f"  📈 事件类型统计: {summary}")
+    summary = await wc.get_weather_summary("example-weather-001")
+    print(f"  📈 天气数据摘要: {summary}")
     print()
 
 
@@ -321,9 +323,9 @@ async def main():
     await demonstrate_custom_consumer()
 
     print("💡 总结:")
-    print("- VirtualConsumer: 适合开发测试，异步内存实现，轻量快速")
-    print("- PersistentConsumer: 适合生产环境，异步持久化，功能完整")
-    print("- 自定义 Consumer: 继承 MessageConsumer 实现异步特殊需求")
+    print("- VirtualConsumer: 适合开发测试天气应用，异步内存实现，轻量快速")
+    print("- PersistentConsumer: 适合生产环境天气服务，异步持久化，功能完整")
+    print("- 自定义 WeatherConsumer: 继承 MessageConsumer 实现天气数据特殊处理需求")
     print("- AgentRunner 通过依赖注入支持不同异步实现，无需修改核心代码")
 
 

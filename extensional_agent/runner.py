@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Any
 import uuid
 
 from .message_consumer import MessageConsumer
@@ -20,8 +19,8 @@ class AgentRunner:
         self.message_consumer = message_consumer
 
     async def run(
-        self, agent_name: str, agent_input: Any
-    ) -> Any:
+        self, agent_name: str, agent_input: str
+    ) -> str:
         rec = self.registry.get(agent_name)
         if not rec:
             raise ValueError(f"Agent '{agent_name}' not found")

@@ -23,6 +23,7 @@ Agent处理的核心是将LLM的reasoning_content字段提取并封装到Executi
 这是一个纯粹的Agent实现，只负责LLM输出解析和reasoning_content提取。
 """
 
+import asyncio
 import os
 import json
 import random
@@ -32,8 +33,7 @@ from uuid import UUID, uuid4
 import openai
 from dotenv import load_dotenv
 
-from .. import ITanWeAIAgent, emit_event
-from ..schemas import ExecutionRecord, Role, ToolCall
+from extensional_agent import ITanWeAIAgent, emit_event, ExecutionRecord, Role, ToolCall
 
 # 加载 .env 文件中的环境变量
 load_dotenv()
@@ -78,15 +78,15 @@ class ThinkingDemoAgent(ITanWeAIAgent):
             api_key=api_key
         )
 
-    async def run(self, agent_input: Any) -> Any:
+    async def run(self, agent_input: str) -> str:
         """
         运行带思考的演示Agent
         
         Args:
-            agent_input: 包含输入信息的AgentInput对象
+            agent_input: Agent 的输入
             
         Returns:
-            空的漏洞列表（演示用途）
+            最终的输出
             
         数据流:
         1. 构建包含工具定义的提示词
@@ -95,8 +95,8 @@ class ThinkingDemoAgent(ITanWeAIAgent):
         4. 处理工具调用并返回结果
         5. 通过emit_event发送事件给订阅者
         """
-        print(f"🔍 [调试] ThinkingDemoAgent.run() 被调用")
-        print(f"🔍 [调试] agent_input.domain: {agent_input.domain}")
+        print("🔍 [调试] ThinkingDemoAgent.run() 被调用")
+        print(f"🔍 [调试] agent_input: {agent_input}")
         print(f"🔍 [调试] OpenAI client 配置 - base_url: {self.openai_client.base_url}")
         print(f"🔍 [调试] OpenAI client 配置 - api_key: {self.openai_client.api_key[:10]}...")
         # 构建用于演示工具调用和思考的提示词
@@ -115,7 +115,7 @@ class ThinkingDemoAgent(ITanWeAIAgent):
             },
             {
                 "role": "user", 
-                "content": f"请帮我查询一下 {agent_input.domain} 这个地方的天气情况和温度。请详细说明你的思考过程。"
+                "content": f"请帮我查询一下 {agent_input} 这个地方的天气情况和温度。请详细说明你的思考过程。"
             }
         ]
         
@@ -160,14 +160,13 @@ class ThinkingDemoAgent(ITanWeAIAgent):
         # 为这次流式响应生成唯一的 stream_id
         stream_id = uuid4()
         chunk_index = 0
-        vulnerabilities = []
         
         # 用于积累流式工具调用的数据结构
         tool_calls_buffer = {}  # tool_call_index -> {id, name, arguments}
 
         try:
-            print(f"🔍 [调试] 开始调用 OpenAI API...")
-            print(f"🔍 [调试] 使用模型: Qwen3-32B")
+            print("🔍 [调试] 开始调用 OpenAI API...")
+            print("🔍 [调试] 使用模型: Qwen3-32B")
             print(f"🔍 [调试] 消息内容: {messages[-1]['content']}")
             
             # 调用 Qwen3-32B 模型获取流式响应
@@ -180,7 +179,7 @@ class ThinkingDemoAgent(ITanWeAIAgent):
                 max_tokens=2000   # 确保有足够空间进行详细推理
             )
             
-            print(f"🔍 [调试] OpenAI API 调用成功，开始处理流式响应...")
+            print("🔍 [调试] OpenAI API 调用成功，开始处理流式响应...")
             chunk_count = 0
             
             async for chunk in stream:
@@ -368,8 +367,8 @@ class ThinkingDemoAgent(ITanWeAIAgent):
             )
             await emit_event(execution_record=error_record)
 
-        # 返回空的漏洞列表（演示用途）
-        return vulnerabilities
+        # 返回最终的答案
+        return "最终的答案"
 
     async def _execute_tool_call(self, stream_id: UUID, chunk_index: int, function_name: str, arguments: Dict[str, Any]):
         """
@@ -415,3 +414,10 @@ class ThinkingDemoAgent(ITanWeAIAgent):
                 is_stop=False
             )
             await emit_event(execution_record=error_record)
+            
+async def main():
+    agent = ThinkingDemoAgent()
+    await agent.run("北京")
+
+if __name__ == "__main__":
+    asyncio.run(main())

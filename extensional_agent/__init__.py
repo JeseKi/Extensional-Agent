@@ -1,5 +1,5 @@
 """
-ExtensionalAgent SDK - 基于 Agent 的可扩展渗透测试框架
+ExtensionalAgent SDK - 基于 Agent 的可扩展框架
 
 该 SDK 提供了完整的 Agent 生命周期管理和事件流处理能力，
 包括 Agent 注册、运行、消息传递和状态管理等核心功能。

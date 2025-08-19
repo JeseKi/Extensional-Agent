@@ -13,8 +13,8 @@ import asyncio
 import time
 from pathlib import Path
 
-from ..message_consumer import MessageConsumer, AsyncCallback
-from ..schemas import AgentEvent
+from extensional_agent.message_consumer import MessageConsumer, AsyncCallback
+from extensional_agent.schemas import AgentEvent
 
 
 class PersistentConsumer(MessageConsumer):

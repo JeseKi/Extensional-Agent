@@ -3,8 +3,8 @@ from typing import Dict, List, DefaultDict
 from collections import defaultdict, deque
 import asyncio
 
-from ..message_consumer import MessageConsumer, AsyncCallback
-from ..schemas import AgentEvent
+from extensional_agent.message_consumer import MessageConsumer, AsyncCallback
+from extensional_agent.schemas import AgentEvent
 
 
 class VirtualConsumer(MessageConsumer):

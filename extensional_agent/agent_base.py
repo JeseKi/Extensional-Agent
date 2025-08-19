@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
+from typing import ClassVar
 
 class ITanWeAIAgent(ABC):
     """
@@ -13,5 +13,5 @@ class ITanWeAIAgent(ABC):
     AGENT_NAME: ClassVar[str] = "agent"
 
     @abstractmethod
-    async def run(self, agent_input: Any) -> Any:
+    async def run(self, agent_input: str) -> str:
         raise NotImplementedError
