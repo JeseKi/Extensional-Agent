@@ -1,0 +1,6 @@
+pip-tools
+pydantic
+pytest
+pytest-cov
+pytest-mock
+pytest-asyncio
