@@ -1,2 +1,10 @@
 .env
 __pycache__
+.coverage
+.venv
+venv
+*.egg-info
+build
+htmlcov
+.pytest_cache
+.ruff_cache

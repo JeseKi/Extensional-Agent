@@ -1,0 +1,38 @@
+# 包含必要的文档文件
+include README.md
+include LICENSE
+include requirements.in
+include pyproject.toml
+
+# 包含配置文件
+include *.yml
+include *.yaml
+include *.toml
+include *.cfg
+include *.ini
+
+# 包含模块的所有 Python 文件
+recursive-include extensional_agent *.py
+recursive-include extensional_agent/examples *.py
+
+# 包含类型提示标记文件
+include extensional_agent/py.typed
+
+# 排除测试文件和开发文件
+recursive-exclude tests *
+recursive-exclude .git *
+recursive-exclude .github *
+recursive-exclude __pycache__ *
+recursive-exclude *.egg-info *
+exclude .gitignore
+exclude .pre-commit-config.yaml
+exclude tox.ini
+exclude Makefile
+
+# 排除编译文件
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude *.dylib
