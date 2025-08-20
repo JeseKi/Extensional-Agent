@@ -2,6 +2,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
+from pydantic import BaseModel
+
 class ITanWeAIAgent(ABC):
     """
     抽象 Agent 基类：
@@ -13,5 +15,5 @@ class ITanWeAIAgent(ABC):
     AGENT_NAME: ClassVar[str] = "agent"
 
     @abstractmethod
-    async def run(self, agent_input: str) -> str:
+    async def run(self, agent_input: str) -> BaseModel:
         raise NotImplementedError

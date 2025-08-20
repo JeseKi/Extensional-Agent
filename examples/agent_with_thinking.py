@@ -31,6 +31,7 @@ from typing import Dict, Any
 from uuid import UUID, uuid4
 
 import openai
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from extensional_agent import ITanWeAIAgent, emit_event, ExecutionRecord, Role, ToolCall
@@ -49,6 +50,9 @@ def get_weather(city: str) -> str:
 def get_temperature(city: str) -> int:
     """获取指定城市的温度（模拟）"""
     return random.randint(-10, 40)  # 模拟温度范围 -10°C 到 40°C
+
+class ThinkingDemoAgentOutput(BaseModel):
+    content: str
 
 
 class ThinkingDemoAgent(ITanWeAIAgent):
@@ -78,7 +82,7 @@ class ThinkingDemoAgent(ITanWeAIAgent):
             api_key=api_key
         )
 
-    async def run(self, agent_input: str) -> str:
+    async def run(self, agent_input: str) -> ThinkingDemoAgentOutput:
         """
         运行带思考的演示Agent
         
@@ -368,7 +372,7 @@ class ThinkingDemoAgent(ITanWeAIAgent):
             await emit_event(execution_record=error_record)
 
         # 返回最终的答案
-        return "最终的答案"
+        return ThinkingDemoAgentOutput(content="最终的答案")
 
     async def _execute_tool_call(self, stream_id: UUID, chunk_index: int, function_name: str, arguments: Dict[str, Any]):
         """
