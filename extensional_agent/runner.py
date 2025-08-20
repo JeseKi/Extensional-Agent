@@ -1,6 +1,8 @@
 from __future__ import annotations
 import uuid
 
+from pydantic import BaseModel
+
 from .message_consumer import MessageConsumer
 from .agent_sdk import ExecutionContext, set_execution_context, clear_execution_context
 from .registry import AgentRegistry
@@ -17,15 +19,18 @@ class AgentRunner:
     ) -> None:
         self.registry = registry
         self.message_consumer = message_consumer
+        self.task2run_id = {}
 
     async def run(
-        self, agent_name: str, agent_input: str
-    ) -> str:
+        self, agent_name: str, agent_input: str, task_id: str | None = None
+    ) -> BaseModel:
         rec = self.registry.get(agent_name)
         if not rec:
             raise ValueError(f"Agent '{agent_name}' not found")
 
         run_id = _new_run_id()
+        if task_id:
+            self.task2run_id[task_id] = run_id
 
         # 通过 contextvars 注入执行上下文，使插件在不改变签名的情况下自动上报事件
         ctx = ExecutionContext(
@@ -41,5 +46,7 @@ class AgentRunner:
             agent_output = await agent_instance.run(agent_input=agent_input)
         finally:
             await clear_execution_context()
+            if task_id:
+                del self.task2run_id[task_id]
 
         return agent_output
